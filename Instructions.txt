@@ -1,0 +1,289 @@
+You are creating a brand new Android music streaming application from scratch.
+
+The repository is empty.
+
+Your task is to generate a fully working Android Studio project using Gradle Kotlin DSL that:
+
+- Can search YouTube videos
+- Display results
+- Stream audio instantly
+- Use native InnerTube API only
+- Build automatically via GitHub Actions
+
+Do NOT use yt-dlp.
+Do NOT use Python.
+Do NOT add download functionality.
+This is streaming-only.
+
+The goal is FAST playback start (<1 second after tap).
+
+Do not ask follow-up questions. Generate the complete project.
+
+
+PROJECT CONFIGURATION
+
+- Language: Kotlin
+- Min SDK: 24
+- Target SDK: 34
+- Compile SDK: 34
+- Namespace: com.dtech.music
+- Application ID: com.dtech.music
+- Gradle: Kotlin DSL (.kts)
+- JDK: 17
+
+
+DEPENDENCIES
+
+Use:
+
+- Media3 ExoPlayer 1.2.1
+  - media3-exoplayer
+  - media3-ui
+  - media3-session
+  - media3-datasource-okhttp
+- OkHttp 4.12.0
+- Kotlin Coroutines 1.7.3
+- Jetpack Compose (Material3)
+- Coil for images
+- Lifecycle ViewModel
+
+No Retrofit.
+No yt-dlp.
+No Room.
+
+
+ARCHITECTURE
+
+Use clean MVVM structure:
+
+com.dtech.music
+  ├── MainActivity.kt
+  ├── ui/
+  ├── viewmodel/
+  ├── repository/
+  ├── network/
+  ├── extractor/
+  ├── player/
+
+Keep it simple and clean.
+
+
+SEARCH IMPLEMENTATION
+
+Create InnerTubeSearchClient.kt
+
+POST to:
+
+https://youtubei.googleapis.com/youtubei/v1/search
+
+Body:
+
+{
+  "context": {
+    "client": {
+      "clientName": "ANDROID",
+      "clientVersion": "19.09.37",
+      "androidSdkVersion": 34
+    }
+  },
+  "query": "SEARCH_TERM"
+}
+
+Parse JSON manually using org.json.
+
+Extract:
+
+- videoId
+- title
+- thumbnail URL (medium resolution)
+
+Return:
+
+data class SearchResult(
+    val videoId: String,
+    val title: String,
+    val thumbnail: String
+)
+
+Run on Dispatchers.IO.
+
+
+STREAM EXTRACTION (CRITICAL)
+
+Create NativeStreamExtractor.kt
+
+Function:
+
+suspend fun getStreamUrl(videoId: String): String
+
+POST to:
+
+https://youtubei.googleapis.com/youtubei/v1/player
+
+Body:
+
+{
+  "context": {
+    "client": {
+      "clientName": "ANDROID",
+      "clientVersion": "19.09.37",
+      "androidSdkVersion": 34
+    }
+  },
+  "videoId": "VIDEO_ID"
+}
+
+Parse:
+
+streamingData.adaptiveFormats[]
+
+Select format where:
+
+- mimeType contains "audio/mp4"
+- highest bitrate
+
+Extract direct URL.
+
+Return URL string.
+
+No signature deciphering.
+No yt-dlp.
+No subprocess.
+
+
+STREAM CACHE
+
+Implement simple LruCache<String, String> (size 100).
+
+Key: videoId  
+Value: stream URL  
+
+Reuse cached URLs unless expired.
+
+Extract expiry from URL using "expire=" parameter.
+
+
+PLAYER
+
+Create PlayerManager.kt using Media3 ExoPlayer.
+
+Use DefaultLoadControl with:
+
+- minBufferMs = 10000
+- maxBufferMs = 20000
+- bufferForPlaybackMs = 250
+- bufferAfterRebufferMs = 500
+
+Use OkHttpDataSource.Factory with shared OkHttpClient.
+
+Expose:
+
+fun play(url: String)
+
+
+UI
+
+Use Jetpack Compose.
+
+Main screen:
+
+- Search text field
+- Search button
+- LazyColumn results
+- Each item:
+  - Thumbnail
+  - Title
+  - Play button
+
+When Play clicked:
+
+- Resolve stream URL
+- Immediately start playback
+
+Keep UI minimal but functional.
+
+
+NETWORKING
+
+Create single OkHttpClient singleton with:
+
+- HTTP/2 enabled (default)
+- Connection pooling
+- 10s timeout
+
+Reuse everywhere.
+
+All network calls must run on Dispatchers.IO.
+
+
+PROJECT FILES TO GENERATE
+
+Must include:
+
+- settings.gradle.kts
+- root build.gradle.kts
+- app/build.gradle.kts
+- gradle.properties
+- gradle wrapper
+- AndroidManifest.xml
+- All source files
+- .github/workflows/android.yml
+
+Everything must compile.
+
+No placeholders.
+No TODOs.
+No syntax errors.
+
+
+GITHUB ACTIONS
+
+Create:
+
+.github/workflows/android.yml
+
+Workflow must:
+
+- Trigger on push and pull_request
+- Use ubuntu-latest
+- Setup JDK 17
+- Cache Gradle
+- Run:
+
+./gradlew assembleDebug
+
+- Upload artifact:
+
+app/build/outputs/apk/debug/app-debug.apk
+
+Artifact name:
+
+debug-apk
+
+Build must succeed.
+
+
+PERFORMANCE GOAL
+
+Playback must begin in under 1 second after tapping Play (normal network).
+
+No process spawning.
+No blocking main thread.
+No unnecessary object creation.
+
+
+FINAL RESULT
+
+The repository should contain:
+
+✔ Fully working Android streaming app  
+✔ Native YouTube search  
+✔ Native stream extraction  
+✔ Instant playback  
+✔ GitHub workflow building debug APK  
+
+Generate the complete project.
+
+Do not ask questions.
+Do not skip files.
+Do not leave incomplete code.
